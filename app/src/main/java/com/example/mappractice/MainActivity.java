@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
 
+
 public class MainActivity extends AppCompatActivity {
     MapView mapView;
     private static final int REQUEST_LOCATION_PERMISSION = 1;
@@ -58,7 +59,8 @@ public class MainActivity extends AppCompatActivity {
     Double my_latitude;
     List<LatLng> line = new ArrayList<>();
     Stack<LatLng> linePoints = new Stack<>();
-    PolygonOptions polygonOptions;
+PolygonOptions polygonOptions;
+    private TrackRecorder trackRecorder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
 
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.showZoomControls(true);
+        trackRecorder = new TrackRecorder();
         BaiduMap mBaiduMap = mapView.getMap();
 
         btnPoint = findViewById(R.id.button_point);
@@ -187,6 +190,21 @@ public class MainActivity extends AppCompatActivity {
                 getDeviceInfo(mBaiduMap);
             }
         });
+
+        new Thread(() -> {
+            try {
+                trackRecorder.startTracking();
+                Thread.sleep(1000);
+                trackRecorder.addLocationPoint(new LocationPoint(31.2304, 121.4737, System.currentTimeMillis()));
+                Thread.sleep(1000);
+                trackRecorder.addLocationPoint(new LocationPoint(31.2310, 121.4745, System.currentTimeMillis()));
+                Thread.sleep(1000);
+                trackRecorder.addLocationPoint(new LocationPoint(31.2320, 121.4755, System.currentTimeMillis()));
+                trackRecorder.stopTrackingAndSaveGpx();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
 
         mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
             @Override
