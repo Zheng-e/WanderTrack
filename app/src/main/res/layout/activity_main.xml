@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/button_point"
+            android:layout_width="80dp"
+            android:layout_height="match_parent"
+            android:text="画点" />
+
+        <Button
+            android:id="@+id/button_line"
+            android:layout_width="80dp"
+            android:layout_height="match_parent"
+            android:text="画线" />
+
+        <Button
+            android:id="@+id/button_poly"
+            android:layout_width="120dp"
+            android:layout_height="match_parent"
+            android:text="画多边形"/>
+
+        <Button
+            android:layout_width="80dp"
+            android:layout_height="match_parent"
+            android:id="@+id/button_test"
+            android:text="定位"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <com.baidu.mapapi.map.MapView
+            android:id="@+id/mapView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="true"/>
+    </LinearLayout>
+</LinearLayout>
