@@ -2,6 +2,7 @@ package com.example.mappractice;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -9,16 +10,22 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.baidu.mapapi.CoordType;
 import com.baidu.mapapi.SDKInitializer;
@@ -33,6 +40,7 @@ import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.map.PolygonOptions;
 import com.baidu.mapapi.map.PolylineOptions;
 import com.baidu.mapapi.model.LatLng;
+import com.google.android.material.navigation.NavigationView;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -47,19 +55,25 @@ import java.util.Stack;
 
 
 public class MainActivity extends AppCompatActivity {
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private Toolbar toolbar;
     MapView mapView;
     private static final int REQUEST_LOCATION_PERMISSION = 1;
     private LocationManager locationManager;
-    Button btnPoint;
-    Button btnLine;
-    Button btnPoly;
-    Button btnTest;
+//    Button btnPoint;
+//    Button btnLine;
+//    Button btnPoly;
+//    Button btnTest;
+    Button btnStart;
+    Button btnStop;
+    Button btnSave;
     String my_device_id;
     Double my_longitude;
     Double my_latitude;
     List<LatLng> line = new ArrayList<>();
     Stack<LatLng> linePoints = new Stack<>();
-PolygonOptions polygonOptions;
+    PolygonOptions polygonOptions;
     private TrackRecorder trackRecorder;
 
     @Override
@@ -74,15 +88,43 @@ PolygonOptions polygonOptions;
         SDKInitializer.setCoordType(CoordType.BD09LL);
         setContentView(R.layout.activity_main);
 
+        drawerLayout = findViewById(R.id.drawer_layout);
+        navigationView = findViewById(R.id.navigation_view);
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                int id = item.getItemId();
+
+                if (id == R.id.nav_load_path) {
+                    startActivity(new Intent(MainActivity.this, LoadPathActivity.class));
+                } else if (id == R.id.nav_achievements) {
+                    startActivity(new Intent(MainActivity.this, AchievementActivity.class));
+                }
+
+                drawerLayout.closeDrawer(GravityCompat.START);
+                return true;
+            }
+        });
+
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar,
+                R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.showZoomControls(true);
         trackRecorder = new TrackRecorder();
         BaiduMap mBaiduMap = mapView.getMap();
 
-        btnPoint = findViewById(R.id.button_point);
-        btnLine = findViewById(R.id.button_line);
-        btnPoly = findViewById(R.id.button_poly);
-        btnTest = findViewById(R.id.button_test);
+//        btnPoint = findViewById(R.id.button_point);
+//        btnLine = findViewById(R.id.button_line);
+//        btnPoly = findViewById(R.id.button_poly);
+//        btnTest = findViewById(R.id.button_test);
+        btnStart = findViewById(R.id.button_start);
+        btnStop = findViewById(R.id.button_stop);
+        btnSave = findViewById(R.id.button_save);
 
         //设置是否显示比例尺控件
         mapView.showScaleControl(false);
@@ -91,15 +133,43 @@ PolygonOptions polygonOptions;
         // 删除百度地图LoGo
         mapView.removeViewAt(1);
 
-        btnPoint.setOnClickListener(new View.OnClickListener() {
+
+        //开始记录轨迹
+        btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mBaiduMap.clear();
-                mBaiduMap.setOnMapClickListener(new BaiduMap.OnMapClickListener() {
-                    @Override
-                    public void onMapClick(LatLng latLng) {
-                        double latitude = latLng.latitude;
-                        double longitude = latLng.longitude;
+                trackRecorder.startTracking();
+                Toast.makeText(MainActivity.this, "开始记录轨迹", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        //停止记录轨迹
+        btnStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                trackRecorder.pauseTracking();
+                Toast.makeText(MainActivity.this, "停止记录轨迹", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        //保存轨迹
+        btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                trackRecorder.stopTrackingAndSaveGpx();
+                Toast.makeText(MainActivity.this, "保存轨迹", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+//        btnPoint.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                mBaiduMap.clear();
+//                mBaiduMap.setOnMapClickListener(new BaiduMap.OnMapClickListener() {
+//                    @Override
+//                    public void onMapClick(LatLng latLng) {
+//                        double latitude = latLng.latitude;
+//                        double longitude = latLng.longitude;
 
                         //添加点
 
@@ -109,87 +179,87 @@ PolygonOptions polygonOptions;
 //                                .color(0xaaaaaacc)
 //                                .radius(10);
 //                        mBaiduMap.addOverlay(dotOptions);
-                        setMyMarker("0",latitude,longitude,mBaiduMap);
-                    }
+//                        setMyMarker("0",latitude,longitude,mBaiduMap);
+//                    }
+//
+//                    @Override
+//                    public void onMapPoiClick(MapPoi mapPoi) {
+//
+//                    }
+//                });
+//            }
+//        });
 
-                    @Override
-                    public void onMapPoiClick(MapPoi mapPoi) {
-
-                    }
-                });
-            }
-        });
-
-        btnLine.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mBaiduMap.clear();
-                mBaiduMap.setOnMapClickListener(new BaiduMap.OnMapClickListener() {
-                    @Override
-                    public void onMapClick(LatLng latLng) {
-                        double latitude = latLng.latitude;
-                        double longitude = latLng.longitude;
-
-                        //添加线
-                        LatLng position = new LatLng(latitude, longitude);
-                        linePoints.push(position);
-                        if ((linePoints.size() % 2 == 0) && (!linePoints.isEmpty())) {
-                            line.add(linePoints.pop());
-                            line.add(linePoints.pop());
-                            PolylineOptions polylineOptions = new PolylineOptions()
-                                    .points(line)
-                                    .width(10)
-                                    .zIndex(5);
-                            mBaiduMap.addOverlay(polylineOptions);
-                            line.clear();
-                        }
-                    }
-
-                    @Override
-                    public void onMapPoiClick(MapPoi mapPoi) {
-
-                    }
-                });
-            }
-        });
-
-        btnPoly.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mBaiduMap.clear();
-                mBaiduMap.setOnMapClickListener(new BaiduMap.OnMapClickListener() {
-                    @Override
-                    public void onMapClick(LatLng latLng) {
-                        double latitude = latLng.latitude;
-                        double longitude = latLng.longitude;
-
-                        //添加多边形
-                        LatLng position = new LatLng(latitude, longitude);
-                        line.add(position);
-                        if (line.size() >= 3) {
-                            mBaiduMap.clear();
-                            polygonOptions = new PolygonOptions()
-                                    .points(line)
-                                    .fillColor(0xaaaaaacc)
-                                    .zIndex(5);
-                            mBaiduMap.addOverlay(polygonOptions);
-                        }
-                    }
-
-                    @Override
-                    public void onMapPoiClick(MapPoi mapPoi) {
-
-                    }
-                });
-            }
-        });
-
-        btnTest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                getDeviceInfo(mBaiduMap);
-            }
-        });
+//        btnLine.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                mBaiduMap.clear();
+//                mBaiduMap.setOnMapClickListener(new BaiduMap.OnMapClickListener() {
+//                    @Override
+//                    public void onMapClick(LatLng latLng) {
+//                        double latitude = latLng.latitude;
+//                        double longitude = latLng.longitude;
+//
+//                        //添加线
+//                        LatLng position = new LatLng(latitude, longitude);
+//                        linePoints.push(position);
+//                        if ((linePoints.size() % 2 == 0) && (!linePoints.isEmpty())) {
+//                            line.add(linePoints.pop());
+//                            line.add(linePoints.pop());
+//                            PolylineOptions polylineOptions = new PolylineOptions()
+//                                    .points(line)
+//                                    .width(10)
+//                                    .zIndex(5);
+//                            mBaiduMap.addOverlay(polylineOptions);
+//                            line.clear();
+//                        }
+//                    }
+//
+//                    @Override
+//                    public void onMapPoiClick(MapPoi mapPoi) {
+//
+//                    }
+//                });
+//            }
+//        });
+//
+//        btnPoly.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                mBaiduMap.clear();
+//                mBaiduMap.setOnMapClickListener(new BaiduMap.OnMapClickListener() {
+//                    @Override
+//                    public void onMapClick(LatLng latLng) {
+//                        double latitude = latLng.latitude;
+//                        double longitude = latLng.longitude;
+//
+//                        //添加多边形
+//                        LatLng position = new LatLng(latitude, longitude);
+//                        line.add(position);
+//                        if (line.size() >= 3) {
+//                            mBaiduMap.clear();
+//                            polygonOptions = new PolygonOptions()
+//                                    .points(line)
+//                                    .fillColor(0xaaaaaacc)
+//                                    .zIndex(5);
+//                            mBaiduMap.addOverlay(polygonOptions);
+//                        }
+//                    }
+//
+//                    @Override
+//                    public void onMapPoiClick(MapPoi mapPoi) {
+//
+//                    }
+//                });
+//            }
+//        });
+//
+//        btnTest.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                getDeviceInfo(mBaiduMap);
+//            }
+//        });
 
         new Thread(() -> {
             try {
@@ -217,6 +287,14 @@ PolygonOptions polygonOptions;
             }
         });
 
+        Intent intent = getIntent();
+        if (intent != null) {
+            String selectedTrack = intent.getStringExtra("selectedTrack");
+            if (selectedTrack != null) {
+                //加载轨迹
+                Toast.makeText(this, "加载轨迹: " + selectedTrack, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
 
@@ -528,4 +606,5 @@ PolygonOptions polygonOptions;
 //        }
 //        return super.onTouchEvent(event);
 //    }
+
 }

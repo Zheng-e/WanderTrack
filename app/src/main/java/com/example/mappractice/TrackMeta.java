@@ -1,6 +1,8 @@
 package com.example.mappractice;
 
-public class TrackMeta {
+import java.io.Serializable;
+
+public class TrackMeta implements Serializable {
     private String filePath;
     private long startTime;
     private long endTime;
