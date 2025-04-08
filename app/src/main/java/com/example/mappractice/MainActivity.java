@@ -1,22 +1,25 @@
 package com.example.mappractice;
 
-import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -106,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
 //                                .color(0xaaaaaacc)
 //                                .radius(10);
 //                        mBaiduMap.addOverlay(dotOptions);
-                        setMyMarker("0",latitude,longitude,mBaiduMap);
+                        setMyMarker("0", latitude, longitude, mBaiduMap);
                     }
 
                     @Override
@@ -191,10 +194,10 @@ public class MainActivity extends AppCompatActivity {
         mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                String info = "longitude:"+marker.getExtraInfo().getString("longitude")
-                        +"\nlatitude:"+marker.getExtraInfo().getString("latitude")
-                        +"\n可添加备注并保存到DB";
-                showInputDialog(info, marker.getExtraInfo().getString("longitude"),marker.getExtraInfo().getString("latitude"));
+                String info = "longitude:" + marker.getExtraInfo().getString("longitude")
+                        + "\nlatitude:" + marker.getExtraInfo().getString("latitude")
+                        + "\n可添加备注并保存到DB";
+                showInputDialog(info, marker.getExtraInfo().getString("longitude"), marker.getExtraInfo().getString("latitude"));
                 return false;
             }
         });
@@ -279,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        });
 
-//        mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
+    //        mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
 //            @Override
 //            public boolean onMarkerClick(Marker marker) {
 //                String s = String.valueOf(marker.getExtraInfo().get("device_id"));
@@ -328,24 +331,31 @@ public class MainActivity extends AppCompatActivity {
 
 //                System.out.println("信息："+deviceId+" "+Lon+" "+Lat+" "+Altitude+" "+Direction+" "+locationTime);
 //                Toast.makeText(this, "这是一个Toast示例", Toast.LENGTH_SHORT).show();
-                String info = "long:"+ Lon + " lat:"+ Lat;
+                String info = "long:" + Lon + " lat:" + Lat;
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, info, Toast.LENGTH_SHORT).show());
-                setMyMarker(deviceId,Lat,Lon,mBaiduMap);
+                setMyMarker(deviceId, Lat, Lon, mBaiduMap);
                 my_device_id = deviceId;
                 my_longitude = Lon;
                 my_latitude = Lat;
 
 //                locationManager.removeUpdates(this); // 更新后停止获取
             }
+
             @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {}
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
             @Override
-            public void onProviderEnabled(@NonNull String provider) {}
+            public void onProviderEnabled(@NonNull String provider) {
+            }
+
             @Override
-            public void onProviderDisabled(@NonNull String provider) {}
+            public void onProviderDisabled(@NonNull String provider) {
+            }
         });
     }
-//
+
+    //
 //    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 //        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 //        if (requestCode == REQUEST_LOCATION_PERMISSION) {
@@ -405,14 +415,14 @@ public class MainActivity extends AppCompatActivity {
 //        return resultJson;
 //    }
 //
-    private void setMyMarker(String deviceId, Double latitude,Double longitude, BaiduMap mBaiduMap){
+    private void setMyMarker(String deviceId, Double latitude, Double longitude, BaiduMap mBaiduMap) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 LatLng point = new LatLng(latitude, longitude);
                 BitmapDescriptor bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.dot_red_icon);
                 OverlayOptions overlayOptions = new MarkerOptions().position(point).icon(bitmapDescriptor);
-                Marker marker=(Marker)mBaiduMap.addOverlay(overlayOptions);
+                Marker marker = (Marker) mBaiduMap.addOverlay(overlayOptions);
 
                 Bundle bundle = new Bundle();
                 bundle.putString("device_id", deviceId);
@@ -427,35 +437,77 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void showInputDialog(String msg, String longitude, String latitude){
+    private void showInputDialog(String msg, String longitude, String latitude) {
+        System.out.println("running dialog");
         LayoutInflater inflater = getLayoutInflater();
         final View layout = inflater.inflate(R.layout.dialog_edittext,
                 (ViewGroup) findViewById(R.id.item_lin_ed));
         EditText inputText = layout.findViewById(R.id.item_ed);
-        AlertDialog.Builder inputDialog = new AlertDialog.Builder(this).setTitle("详情").setView(layout).setMessage(msg)
-                .setPositiveButton("保存", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        String editInfo = inputText.getText().toString();
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                saveMarkerInDB(editInfo,longitude,latitude);
-                            }
-                        }).start();
-                    }
-                }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {}
-                });
-        inputDialog.create().show();
+//        AlertDialog.Builder inputDialog = new AlertDialog.Builder(this).setTitle("详情").setView(layout).setMessage(msg)
+//                .setPositiveButton("保存", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialogInterface, int i) {
+//                        String editInfo = inputText.getText().toString();
+//                        new Thread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                saveMarkerInDB(editInfo,longitude,latitude);
+//                            }
+//                        }).start();
+//                    }
+//                }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialogInterface, int i) {}
+//                });
+//        inputDialog.create().show();
+
+        final AlertDialog inputDialog = new AlertDialog.Builder(this).setTitle("详情")
+                .setView(layout)
+                .setMessage(msg)
+                .setPositiveButton("保存", null)
+                .setNegativeButton("取消", null)
+                .create();
+
+        System.out.println("basic settings done");
+        inputDialog.setOnShowListener(d -> {
+            System.out.println("fade in ready");
+            View dialogDecorView = inputDialog.getWindow().getDecorView();
+            UIAnimationTool.dialogFadeIn(dialogDecorView, 300);
+            Button positiveBtn = inputDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+//            Button negativeBtn = inputDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+
+            positiveBtn.setOnClickListener(view -> {
+                System.out.println("fade out ready");
+                new Thread(() -> {
+                    System.out.println("code test");
+                    runOnUiThread(() -> {
+                        if (inputDialog.isShowing()){
+                            inputDialog.dismiss();
+                        }else {
+                            System.out.println("error occurred in dialog dismissing");
+                        }
+                    });
+                }).start();
+                System.out.println("saved in database");
+//                animateDialogOut(inputDialog); // 封装淡出逻辑
+            });
+        });
+
+        System.out.println("before showing");
+//        inputDialog.getWindow().getDecorView().setVisibility(View.INVISIBLE);
+        inputDialog.show();
     }
 
-    private void saveMarkerInDB(String msg, String longitude, String latitude){
-        String sqlAdd = String.format("insert into test(longitude, latitude, info) values('%s', '%s', '%s')",longitude,latitude,msg);
+//    private void animateDialogOut(AlertDialog dialog) {
+//        View decorView = dialog.getWindow().getDecorView();
+//        UIAnimationTool.dialogFadeOut(decorView, 300, dialog);
+//    }
+
+    private void saveMarkerInDB(String msg, String longitude, String latitude) {
+        String sqlAdd = String.format("insert into test(longitude, latitude, info) values('%s', '%s', '%s')", longitude, latitude, msg);
         Connection connection;
         Statement statement;
-        try{
+        try {
             Class.forName("com.mysql.jdbc.Driver");
             String connStr = "jdbc:mysql://1.14.20.210:3366/demo?user=Administrator&password=XWClassroom20202023&userUnicode=true&characterEncoding=UTF-8";
             connection = DriverManager.getConnection(connStr);
