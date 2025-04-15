@@ -1,9 +1,11 @@
 package com.example.mappractice;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -32,16 +34,26 @@ import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.map.BaiduMap;
 import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
+import com.baidu.mapapi.map.HeatMap;
 import com.baidu.mapapi.map.MapPoi;
+import com.baidu.mapapi.map.MapStatus;
+import com.baidu.mapapi.map.MapStatusUpdate;
+import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
 import com.baidu.mapapi.map.Marker;
 import com.baidu.mapapi.map.MarkerOptions;
 import com.baidu.mapapi.map.OverlayOptions;
 import com.baidu.mapapi.map.PolygonOptions;
+import com.baidu.mapapi.map.Polyline;
 import com.baidu.mapapi.map.PolylineOptions;
 import com.baidu.mapapi.model.LatLng;
+import com.baidu.mapapi.utils.CoordinateConverter;
 import com.google.android.material.navigation.NavigationView;
 
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -61,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
     MapView mapView;
     private static final int REQUEST_LOCATION_PERMISSION = 1;
     private LocationManager locationManager;
+    private LocationListener locationListener;
 //    Button btnPoint;
 //    Button btnLine;
 //    Button btnPoly;
@@ -75,6 +88,9 @@ public class MainActivity extends AppCompatActivity {
     Stack<LatLng> linePoints = new Stack<>();
     PolygonOptions polygonOptions;
     private TrackRecorder trackRecorder;
+    PolylineOptions visibleTrack;
+    List<LatLng> pointSets = new ArrayList<>();
+    Polyline visibleLine;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,7 +154,21 @@ public class MainActivity extends AppCompatActivity {
         btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+//                mBaiduMap.clear();
+//                visibleLine = null;
+//                visibleTrack = null;
+                pointSets.clear();
+                resetOverlay(mBaiduMap);
                 trackRecorder.startTracking();
+                //startTracking测试中，不确定有无Bug
+//                startTracking(mBaiduMap);
+                LatLng point1 = new LatLng(31.2304, 121.4737);
+                LatLng point2 = new LatLng(31.2310, 121.4745);
+                LatLng point3 = new LatLng(31.2320, 121.4755);
+                updateTrack(point1, mBaiduMap);
+                updateTrack(point2, mBaiduMap);
+                updateTrack(point3, mBaiduMap);
+                toFirstLocation(mBaiduMap);
                 Toast.makeText(MainActivity.this, "开始记录轨迹", Toast.LENGTH_SHORT).show();
             }
         });
@@ -148,6 +178,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 trackRecorder.pauseTracking();
+                //模拟加入了一个点
+                LatLng testPoint = new LatLng(31.2500, 121.4920);
+                updateTrack(testPoint, mBaiduMap);
                 Toast.makeText(MainActivity.this, "停止记录轨迹", Toast.LENGTH_SHORT).show();
             }
         });
@@ -157,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 trackRecorder.stopTrackingAndSaveGpx();
+                stopRecording();
                 Toast.makeText(MainActivity.this, "保存轨迹", Toast.LENGTH_SHORT).show();
             }
         });
@@ -171,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
 //                        double latitude = latLng.latitude;
 //                        double longitude = latLng.longitude;
 
-                        //添加点
+        //添加点
 
 //                        LatLng position = new LatLng(latitude, longitude);
 //                        DotOptions dotOptions = new DotOptions()
@@ -261,28 +295,30 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        });
 
-        new Thread(() -> {
-            try {
-                trackRecorder.startTracking();
-                Thread.sleep(1000);
-                trackRecorder.addLocationPoint(new LocationPoint(31.2304, 121.4737, System.currentTimeMillis()));
-                Thread.sleep(1000);
-                trackRecorder.addLocationPoint(new LocationPoint(31.2310, 121.4745, System.currentTimeMillis()));
-                Thread.sleep(1000);
-                trackRecorder.addLocationPoint(new LocationPoint(31.2320, 121.4755, System.currentTimeMillis()));
-                trackRecorder.stopTrackingAndSaveGpx();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).start();
+//        new Thread(() -> {
+//            try {
+//                trackRecorder.startTracking();
+//                Thread.sleep(1000);
+//                trackRecorder.addLocationPoint(new LocationPoint(31.2304, 121.4737, System.currentTimeMillis()));
+//                Thread.sleep(1000);
+//                trackRecorder.addLocationPoint(new LocationPoint(31.2310, 121.4745, System.currentTimeMillis()));
+//                Thread.sleep(1000);
+//                trackRecorder.addLocationPoint(new LocationPoint(31.2320, 121.4755, System.currentTimeMillis()));
+//                Thread.sleep(1000);
+//                trackRecorder.addLocationPoint(new LocationPoint(31.2500, 121.4920, System.currentTimeMillis()));
+//                trackRecorder.stopTrackingAndSaveGpx();
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }).start();
 
         mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                String info = "longitude:"+marker.getExtraInfo().getString("longitude")
-                        +"\nlatitude:"+marker.getExtraInfo().getString("latitude")
-                        +"\n可添加备注并保存到DB";
-                showInputDialog(info, marker.getExtraInfo().getString("longitude"),marker.getExtraInfo().getString("latitude"));
+                String info = "longitude:" + marker.getExtraInfo().getString("longitude")
+                        + "\nlatitude:" + marker.getExtraInfo().getString("latitude")
+                        + "\n可添加备注并保存到DB";
+                showInputDialog(info, marker.getExtraInfo().getString("longitude"), marker.getExtraInfo().getString("latitude"));
                 return false;
             }
         });
@@ -292,11 +328,163 @@ public class MainActivity extends AppCompatActivity {
             String selectedTrack = intent.getStringExtra("selectedTrack");
             if (selectedTrack != null) {
                 //加载轨迹
+                TrackImporter trackImporter = new TrackImporter();
+                System.out.println("try to load " + selectedTrack);
+                String gpxDirectory = getExternalFilesDir(null).getAbsolutePath();
+                File gpxFile = new File(gpxDirectory, selectedTrack);//使用file对象智能拼接路径和处理分隔符
+                try {
+                    pointSets = trackImporter.gpxToList(gpxFile.getAbsolutePath());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (XmlPullParserException e) {
+                    throw new RuntimeException(e);
+                }
+                resetOverlay(mBaiduMap);
+                toFirstLocation(mBaiduMap);
+                System.out.println("load finished");
                 Toast.makeText(this, "加载轨迹: " + selectedTrack, Toast.LENGTH_SHORT).show();
             }
         }
+
+        mBaiduMap.setOnMapStatusChangeListener(new BaiduMap.OnMapStatusChangeListener() {
+            @Override
+            public void onMapStatusChangeStart(MapStatus mapStatus) {
+
+            }
+
+            @Override
+            public void onMapStatusChangeStart(MapStatus mapStatus, int i) {
+
+            }
+
+            @Override
+            public void onMapStatusChange(MapStatus mapStatus) {
+                //根据地图的缩放状态调整路径
+                float zoomLevel = mapStatus.zoom;
+                //热力图方案废案
+//                HeatMap heatMap;
+//                if(zoomLevel < 6){
+//                    List<LatLng> heatmapPoints = new ArrayList<>();
+//                    for (LatLng point : pointSets) {
+//                        // 在路径点周围生成密集虚拟点
+//                        for (int i=0; i<20; i++) {
+//                            double offsetLat = point.latitude + (Math.random()-0.5)*0.2;
+//                            double offsetLng = point.longitude + (Math.random()-0.5)*0.2;
+//                            heatmapPoints.add(new LatLng(offsetLat, offsetLng));
+//                        }
+//                    }
+//                    HeatMap.Builder builder = new HeatMap.Builder()
+//                            .data(heatmapPoints)
+//                            .gradient(HeatMap.DEFAULT_GRADIENT);
+//                    heatMap = builder.build();
+//                    mBaiduMap.addHeatMap(heatMap);
+//                }else{
+//                    resetOverlay(mBaiduMap);
+//                }
+                float dynamicWidth = zoomLevel * 1.5f;
+                visibleLine.setWidth((int) dynamicWidth);
+            }
+
+            @Override
+            public void onMapStatusChangeFinish(MapStatus mapStatus) {
+
+            }
+        });
     }
 
+    /**
+     * 为当前已有的路径加入一个新的路径点
+     *
+     * @param newPoint 需要加入的点
+     * @param mBaiduMap 地图控件
+     */
+    public void updateTrack(LatLng newPoint, BaiduMap mBaiduMap) {
+        pointSets.add(newPoint);
+        LocationPoint point = new LocationPoint(newPoint.latitude, newPoint.longitude, System.currentTimeMillis());
+        trackRecorder.addLocationPoint(point);
+        resetOverlay(mBaiduMap);
+    }
+
+    /**
+     * 重置所有的地图覆盖物，同时只保留最原始的路径
+     *
+     * @param mBaiduMap 地图控件
+     */
+    public void resetOverlay(BaiduMap mBaiduMap) {
+        mBaiduMap.clear();
+        if(visibleLine != null){
+            visibleLine.remove();
+        }
+        if(pointSets.size() >= 2){
+            visibleTrack = new PolylineOptions()
+                    .points(pointSets) // 添加坐标点
+                    .color(Color.RED) // 设置颜色
+                    .width(10) // 线宽
+                    .dottedLine(true); // 是否虚线（可选）
+            visibleLine = (Polyline) mBaiduMap.addOverlay(visibleTrack);
+        }
+    }
+
+    /**
+     * 孩子们，我才是真正的startTracking
+     *
+     * @param mBaiduMap 地图控件
+     */
+    public void startTracking(BaiduMap mBaiduMap) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION_PERMISSION);
+            return;
+        }
+
+        locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(@NonNull Location location) {
+                LatLng myLatPoint = trackRecorder.convertToBD09(location);
+                updateTrack(myLatPoint, mBaiduMap);
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
+            @Override
+            public void onProviderEnabled(@NonNull String provider) {
+            }
+
+            @Override
+            public void onProviderDisabled(@NonNull String provider) {
+            }
+        };
+
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, locationListener);
+    }
+
+    /**
+     * 孩子们，我才是真正的stopRecording
+     */
+    public void stopRecording() {
+        if (locationManager != null && locationListener != null) {
+            locationManager.removeUpdates(locationListener);
+        }
+    }
+
+    /**
+     * 将地图视角移动到pointSets中第一个点的位置。用途是导入地图和地图定位时移动视角到导入的位置或实际所在位置
+     *
+     * @param mBaiduMap 地图控件
+     */
+    public void toFirstLocation(BaiduMap mBaiduMap){
+        if(!pointSets.isEmpty()){
+            float currentZoom = 16;
+            MapStatus mapStatus = mBaiduMap.getMapStatus();
+            if(mapStatus != null){
+                currentZoom = mapStatus.zoom;
+            }
+            MapStatusUpdate update = MapStatusUpdateFactory.newLatLngZoom(pointSets.get(0),currentZoom);
+            mBaiduMap.animateMapStatus(update);
+        }
+    }
 
 //
 //        btnSend.setOnClickListener(new View.OnClickListener() {
@@ -375,7 +563,7 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        });
 
-//        mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
+    //        mBaiduMap.setOnMarkerClickListener(new BaiduMap.OnMarkerClickListener() {
 //            @Override
 //            public boolean onMarkerClick(Marker marker) {
 //                String s = String.valueOf(marker.getExtraInfo().get("device_id"));
@@ -408,9 +596,9 @@ public class MainActivity extends AppCompatActivity {
 //
     private void getDeviceInfo(BaiduMap mBaiduMap) {
         String deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION_PERMISSION);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION_PERMISSION);
             return;
         }
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, new LocationListener() {
@@ -422,26 +610,31 @@ public class MainActivity extends AppCompatActivity {
                 String Direction = location.getBearing() + "";
                 String locationTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date(location.getTime()));
 
-//                System.out.println("信息："+deviceId+" "+Lon+" "+Lat+" "+Altitude+" "+Direction+" "+locationTime);
-//                Toast.makeText(this, "这是一个Toast示例", Toast.LENGTH_SHORT).show();
-                String info = "long:"+ Lon + " lat:"+ Lat;
+                String info = "long:" + Lon + " lat:" + Lat;
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, info, Toast.LENGTH_SHORT).show());
-                setMyMarker(deviceId,Lat,Lon,mBaiduMap);
+                setMyMarker(deviceId, Lat, Lon, mBaiduMap);
                 my_device_id = deviceId;
                 my_longitude = Lon;
                 my_latitude = Lat;
 
 //                locationManager.removeUpdates(this); // 更新后停止获取
             }
+
             @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {}
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
             @Override
-            public void onProviderEnabled(@NonNull String provider) {}
+            public void onProviderEnabled(@NonNull String provider) {
+            }
+
             @Override
-            public void onProviderDisabled(@NonNull String provider) {}
+            public void onProviderDisabled(@NonNull String provider) {
+            }
         });
     }
-//
+
+    //
 //    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 //        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 //        if (requestCode == REQUEST_LOCATION_PERMISSION) {
@@ -501,14 +694,14 @@ public class MainActivity extends AppCompatActivity {
 //        return resultJson;
 //    }
 //
-    private void setMyMarker(String deviceId, Double latitude,Double longitude, BaiduMap mBaiduMap){
+    private void setMyMarker(String deviceId, Double latitude, Double longitude, BaiduMap mBaiduMap) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 LatLng point = new LatLng(latitude, longitude);
                 BitmapDescriptor bitmapDescriptor = BitmapDescriptorFactory.fromResource(R.drawable.dot_red_icon);
                 OverlayOptions overlayOptions = new MarkerOptions().position(point).icon(bitmapDescriptor);
-                Marker marker=(Marker)mBaiduMap.addOverlay(overlayOptions);
+                Marker marker = (Marker) mBaiduMap.addOverlay(overlayOptions);
 
                 Bundle bundle = new Bundle();
                 bundle.putString("device_id", deviceId);
@@ -523,7 +716,7 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void showInputDialog(String msg, String longitude, String latitude){
+    private void showInputDialog(String msg, String longitude, String latitude) {
         LayoutInflater inflater = getLayoutInflater();
         final View layout = inflater.inflate(R.layout.dialog_edittext,
                 (ViewGroup) findViewById(R.id.item_lin_ed));
@@ -536,22 +729,23 @@ public class MainActivity extends AppCompatActivity {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
-                                saveMarkerInDB(editInfo,longitude,latitude);
+                                saveMarkerInDB(editInfo, longitude, latitude);
                             }
                         }).start();
                     }
                 }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
                     @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {}
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                    }
                 });
         inputDialog.create().show();
     }
 
-    private void saveMarkerInDB(String msg, String longitude, String latitude){
-        String sqlAdd = String.format("insert into test(longitude, latitude, info) values('%s', '%s', '%s')",longitude,latitude,msg);
+    private void saveMarkerInDB(String msg, String longitude, String latitude) {
+        String sqlAdd = String.format("insert into test(longitude, latitude, info) values('%s', '%s', '%s')", longitude, latitude, msg);
         Connection connection;
         Statement statement;
-        try{
+        try {
             Class.forName("com.mysql.jdbc.Driver");
             String connStr = "jdbc:mysql://1.14.20.210:3366/demo?user=Administrator&password=XWClassroom20202023&userUnicode=true&characterEncoding=UTF-8";
             connection = DriverManager.getConnection(connStr);

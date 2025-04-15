@@ -30,9 +30,13 @@ public class LoadPathActivity extends AppCompatActivity {
         //或者显示轨迹的详细信息
         trackListView.setOnItemClickListener((parent, view, position, id) -> {
             TrackMeta selectedTrack = trackAdapter.getItem(position);
+//            String originName = getExternalFilesDir("gpx").getAbsolutePath() + selectedTrack.getFilePath();
+            String originName = selectedTrack.getFilePath();
+//            System.out.println("gpx file path is "+originName);
             Intent intent = new Intent(LoadPathActivity.this, MainActivity.class);
-            intent.putExtra("selectedTrack", selectedTrack);
+            intent.putExtra("selectedTrack", originName);
             startActivity(intent);
+
         });
 
     }

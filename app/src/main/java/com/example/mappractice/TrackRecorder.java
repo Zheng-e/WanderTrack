@@ -1,6 +1,24 @@
 package com.example.mappractice;
 
+import static android.content.Context.LOCATION_SERVICE;
+import static androidx.core.content.ContextCompat.getSystemService;
+
+//import static com.example.mappractice.MainActivity.REQUEST_LOCATION_PERMISSION;
+
+import android.Manifest;
+import android.app.Activity;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.Bundle;
 import android.util.Log;
+
+import androidx.core.app.ActivityCompat;
+
+import com.baidu.mapapi.model.LatLng;
+import com.baidu.mapapi.utils.CoordinateConverter;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,6 +35,8 @@ public class TrackRecorder {
     private List<LocationPoint> trackPoints = new ArrayList<>();
     private long startTime = 0;
     private long endTime = 0;
+//    private LocationManager locationManager;
+//    private static final int REQUEST_LOCATION_PERMISSION = 1;
 
     public void startTracking() {
         //开始记录轨迹
@@ -82,5 +102,33 @@ public class TrackRecorder {
 
     public void addLocationPoint(LocationPoint point) {
         trackPoints.add(point);
+    }
+
+    /**
+     * locationManager定位的坐标是WGS84坐标系，需要转化为BD09。使用的是官方工具。
+     *
+     * @param location 原始位置
+     * @return 对应BD09坐标
+     */
+    public LatLng convertToBD09(Location location) {
+        CoordinateConverter converter = new CoordinateConverter();
+        converter.from(CoordinateConverter.CoordType.GPS);
+        LatLng sourceLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+        converter.coord(sourceLatLng);
+        return converter.convert();
+    }
+
+    /**
+     * 将对象中trackPoints的点转为LatLng输出，目的是方便地图覆盖物添加
+     *
+     * @return 轨迹点集，形式为Google Maps Android API中的类
+     */
+    public List<LatLng> getLocationOnly() {
+        List<LatLng> pointSets = new ArrayList<>();
+        for (LocationPoint each : trackPoints) {
+            LatLng point = new LatLng(each.latitude, each.longitude);
+            pointSets.add(point);
+        }
+        return pointSets;
     }
 }
