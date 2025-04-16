@@ -3,7 +3,7 @@ package com.example.mappractice;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
+import net.sqlcipher.database.SQLiteDatabase;
 import android.content.ContentValues;
 import android.util.Log;
 
@@ -23,12 +23,12 @@ public class AchievementTracker {
 
     // 测试用
     public void clearDatabase() {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        SQLiteDatabase db = dbHelper.getWritableDatabase("your_password");
         db.delete(AchievementDb.AchievementEntry.TABLE_NAME, null, null);
     }
 
     public void addLocation(String userID, String province, String city, String country, String continent) {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        SQLiteDatabase db = dbHelper.getWritableDatabase("your_password");
         ContentValues values = new ContentValues();
         values.put(AchievementDb.AchievementEntry.COLUMN_USER_ID, userID);
         values.put(AchievementDb.AchievementEntry.COLUMN_PROVINCE, province);
@@ -61,7 +61,7 @@ public class AchievementTracker {
 
     }
 //    private void checkExistingRecord(String userId, String city) {
-//        SQLiteDatabase db = dbHelper.getReadableDatabase();
+//        SQLiteDatabase db = dbHelper.getReadableDatabase("your_password");
 //        String query = "SELECT * FROM " + AchievementDb.AchievementEntry.TABLE_NAME +
 //                " WHERE " + AchievementDb.AchievementEntry.COLUMN_USER_ID + " = ?" +
 //                " AND " + AchievementDb.AchievementEntry.COLUMN_CITY + " = ?";
@@ -88,7 +88,7 @@ public class AchievementTracker {
     }
 
     private int queryCount(String column) {
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        SQLiteDatabase db = dbHelper.getReadableDatabase("your_password");
         String query = "SELECT COUNT(DISTINCT " + column + ") FROM " +
                 AchievementDb.AchievementEntry.TABLE_NAME +
                 " WHERE " + AchievementDb.AchievementEntry.COLUMN_USER_ID + " = 'test_user_001'";

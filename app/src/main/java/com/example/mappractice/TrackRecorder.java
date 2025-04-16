@@ -3,8 +3,6 @@ package com.example.mappractice;
 import static android.content.Context.LOCATION_SERVICE;
 import static androidx.core.content.ContextCompat.getSystemService;
 
-//import static com.example.mappractice.MainActivity.REQUEST_LOCATION_PERMISSION;
-
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
@@ -31,12 +29,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
 public class TrackRecorder {
     private List<LocationPoint> trackPoints = new ArrayList<>();
     private long startTime = 0;
     private long endTime = 0;
-//    private LocationManager locationManager;
-//    private static final int REQUEST_LOCATION_PERMISSION = 1;
 
     public void startTracking() {
         //开始记录轨迹
@@ -65,27 +64,33 @@ public class TrackRecorder {
         //GPX文件标准时区为UTC时区
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-        try (FileOutputStream fos = new FileOutputStream(gpxFile);
-             OutputStreamWriter writer = new OutputStreamWriter(fos)) {
-
-            writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-            writer.write("<gpx version=\"1.1\" creator=\"WanderTrack\">\n");
-            writer.write("  <trk><name>Recorded Track</name><trkseg>\n");
+        try {
+            StringBuilder gpxContent = new StringBuilder();
+            gpxContent.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+            gpxContent.append("<gpx version=\"1.1\" creator=\"WanderTrack\">\n");
+            gpxContent.append("  <trk><name>Recorded Track</name><trkseg>\n");
 
             for (LocationPoint point : points) {
-                writer.write(String.format(Locale.US,
+                gpxContent.append(String.format(Locale.US,
                         "    <trkpt lat=\"%f\" lon=\"%f\"><time>%s</time></trkpt>\n",
                         point.latitude, point.longitude,
                         sdf.format(new Date(point.timestamp))));
             }
 
-            writer.write("  </trkseg></trk>\n");
-            writer.write("</gpx>\n");
+            gpxContent.append("  </trkseg></trk>\n");
+            gpxContent.append("</gpx>\n");
 
-        } catch (IOException e) {
+            // 加密内容
+            byte[] encryptedData = encryptGPXContent(gpxContent.toString(), "WanderTrack123456"); // 密钥为16字节
+            try (FileOutputStream fos = new FileOutputStream(gpxFile)) {
+                fos.write(encryptedData);
+            }
+
+            Log.d("TrackRecorder", "Encrypted GPX saved to: " + gpxFile.getAbsolutePath());
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        Log.d("TrackRecorder", "GPX saved to: " + gpxFile.getAbsolutePath());
     }
 
     private String generateFileName() {
@@ -130,5 +135,12 @@ public class TrackRecorder {
             pointSets.add(point);
         }
         return pointSets;
+    }
+
+    private byte[] encryptGPXContent(String content, String key) throws Exception {
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        return cipher.doFinal(content.getBytes("UTF-8"));
     }
 }
