@@ -2,8 +2,6 @@ package com.example.mappractice;
 
 import android.util.Xml;
 
-import com.baidu.mapapi.model.LatLng;
-
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -115,43 +113,4 @@ public class TrackImporter {
         dbHelper.insertTrackMeta(filePath, startTime, endTime);
     }
 
-    /**
-     * 传入gpx文件，仅读取其经纬度坐标，放入List<LatLng>对象中返回。作用是方便放入地图的overlay中展示，同时也由于parseGpx是类的私有方法，不能在外部调用
-     *
-     * @param filePath 文件路径
-     * @return 文件内存放的坐标，用Google Maps Android API中的类返回
-     * @throws IOException            文件读取错误
-     * @throws XmlPullParserException XMLPullParser错误
-     */
-    public List<LatLng> gpxToList(String filePath) throws IOException, XmlPullParserException {
-        List<LatLng> points = new ArrayList<>();
-        InputStream inputStream = null;
-
-        try {
-            File gpxFile = new File(filePath);
-            inputStream = new FileInputStream(gpxFile);
-            XmlPullParser parser = Xml.newPullParser();
-            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-            parser.setInput(inputStream, null);
-
-            int eventType = parser.getEventType();
-            while (eventType != XmlPullParser.END_DOCUMENT) {
-                if (eventType == XmlPullParser.START_TAG) {
-                    if ("trkpt".equals(parser.getName())) {
-                        String lat = parser.getAttributeValue(null, "lat");
-                        String lon = parser.getAttributeValue(null, "lon");
-                        if (lat != null && lon != null) {
-                            points.add(new LatLng(Double.parseDouble(lat), Double.parseDouble(lon)));
-                        }
-                    }
-                }
-                eventType = parser.next();
-            }
-        } finally {
-            if (inputStream != null) {
-                inputStream.close();
-            }
-        }
-        return points;
-    }
 }

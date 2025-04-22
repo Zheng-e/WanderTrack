@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-04-09T01:05:55.996947500Z">
+        <DropdownSelection timestamp="2025-04-21T10:53:29.873889200Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\28902\.android\avd\Galaxy_Nexus_API_30.avd" />
+              <DeviceId pluginId="Default" identifier="serial=10.134.113.23:38319;connection=8f918e88" />
             </handle>
           </Target>
         </DropdownSelection>

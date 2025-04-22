@@ -11,6 +11,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.Xml;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -50,10 +51,13 @@ import com.baidu.mapapi.model.LatLng;
 import com.baidu.mapapi.utils.CoordinateConverter;
 import com.google.android.material.navigation.NavigationView;
 
+import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -74,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_LOCATION_PERMISSION = 1;
     private LocationManager locationManager;
     private LocationListener locationListener;
-//    Button btnPoint;
+    //    Button btnPoint;
 //    Button btnLine;
 //    Button btnPoly;
 //    Button btnTest;
@@ -161,14 +165,23 @@ public class MainActivity extends AppCompatActivity {
                 resetOverlay(mBaiduMap);
                 trackRecorder.startTracking();
                 //startTracking测试中，不确定有无Bug
-//                startTracking(mBaiduMap);
-                LatLng point1 = new LatLng(31.2304, 121.4737);
-                LatLng point2 = new LatLng(31.2310, 121.4745);
-                LatLng point3 = new LatLng(31.2320, 121.4755);
-                updateTrack(point1, mBaiduMap);
-                updateTrack(point2, mBaiduMap);
-                updateTrack(point3, mBaiduMap);
-                toFirstLocation(mBaiduMap);
+                startTracking(mBaiduMap);
+//                LatLng point1 = new LatLng(31.2304, 121.4737);
+//                LatLng point2 = new LatLng(31.2310, 121.4745);
+//                LatLng point3 = new LatLng(31.2320, 121.4755);
+//                updateTrack(point1, mBaiduMap);
+//                updateTrack(point2, mBaiduMap);
+//                updateTrack(point3, mBaiduMap);
+//                toFirstLocation(mBaiduMap);
+
+//                float currentZoom = 16;
+//                LatLng defaultPosition = new LatLng(31.0000,103.0000);
+//                MapStatus mapStatus = mBaiduMap.getMapStatus();
+//                if (mapStatus != null) {
+//                    currentZoom = mapStatus.zoom;
+//                }
+//                MapStatusUpdate update = MapStatusUpdateFactory.newLatLngZoom(defaultPosition, currentZoom);
+//                mBaiduMap.animateMapStatus(update);
                 Toast.makeText(MainActivity.this, "开始记录轨迹", Toast.LENGTH_SHORT).show();
             }
         });
@@ -328,12 +341,11 @@ public class MainActivity extends AppCompatActivity {
             String selectedTrack = intent.getStringExtra("selectedTrack");
             if (selectedTrack != null) {
                 //加载轨迹
-                TrackImporter trackImporter = new TrackImporter();
                 System.out.println("try to load " + selectedTrack);
                 String gpxDirectory = getExternalFilesDir(null).getAbsolutePath();
                 File gpxFile = new File(gpxDirectory, selectedTrack);//使用file对象智能拼接路径和处理分隔符
                 try {
-                    pointSets = trackImporter.gpxToList(gpxFile.getAbsolutePath());
+                    pointSets = gpxToList(gpxFile.getAbsolutePath());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (XmlPullParserException e) {
@@ -382,7 +394,9 @@ public class MainActivity extends AppCompatActivity {
 //                    resetOverlay(mBaiduMap);
 //                }
                 float dynamicWidth = zoomLevel * 1.5f;
-                visibleLine.setWidth((int) dynamicWidth);
+                if(visibleLine != null){
+                    visibleLine.setWidth((int) dynamicWidth);
+                }
             }
 
             @Override
@@ -395,7 +409,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 为当前已有的路径加入一个新的路径点
      *
-     * @param newPoint 需要加入的点
+     * @param newPoint  需要加入的点
      * @param mBaiduMap 地图控件
      */
     public void updateTrack(LatLng newPoint, BaiduMap mBaiduMap) {
@@ -412,10 +426,10 @@ public class MainActivity extends AppCompatActivity {
      */
     public void resetOverlay(BaiduMap mBaiduMap) {
         mBaiduMap.clear();
-        if(visibleLine != null){
+        if (visibleLine != null) {
             visibleLine.remove();
         }
-        if(pointSets.size() >= 2){
+        if (pointSets.size() >= 2) {
             visibleTrack = new PolylineOptions()
                     .points(pointSets) // 添加坐标点
                     .color(Color.RED) // 设置颜色
@@ -423,6 +437,46 @@ public class MainActivity extends AppCompatActivity {
                     .dottedLine(true); // 是否虚线（可选）
             visibleLine = (Polyline) mBaiduMap.addOverlay(visibleTrack);
         }
+    }
+
+    /**
+     * 传入gpx文件，仅读取其经纬度坐标，放入List<LatLng>对象中返回。作用是方便放入地图的overlay中展示，同时也由于parseGpx是类的私有方法，不能在外部调用
+     *
+     * @param filePath 文件路径
+     * @return 文件内存放的坐标，用Google Maps Android API中的类返回
+     * @throws IOException            文件读取错误
+     * @throws XmlPullParserException XMLPullParser错误
+     */
+    public List<LatLng> gpxToList(String filePath) throws IOException, XmlPullParserException {
+        List<LatLng> points = new ArrayList<>();
+        InputStream inputStream = null;
+
+        try {
+            File gpxFile = new File(filePath);
+            inputStream = new FileInputStream(gpxFile);
+            XmlPullParser parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(inputStream, null);
+
+            int eventType = parser.getEventType();
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                if (eventType == XmlPullParser.START_TAG) {
+                    if ("trkpt".equals(parser.getName())) {
+                        String lat = parser.getAttributeValue(null, "lat");
+                        String lon = parser.getAttributeValue(null, "lon");
+                        if (lat != null && lon != null) {
+                            points.add(new LatLng(Double.parseDouble(lat), Double.parseDouble(lon)));
+                        }
+                    }
+                }
+                eventType = parser.next();
+            }
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+        }
+        return points;
     }
 
     /**
@@ -441,7 +495,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLocationChanged(@NonNull Location location) {
                 LatLng myLatPoint = trackRecorder.convertToBD09(location);
-                updateTrack(myLatPoint, mBaiduMap);
+                if (pointSets.isEmpty()) {
+                    updateTrack(myLatPoint, mBaiduMap);
+                    toFirstLocation(mBaiduMap);
+                } else {
+                    updateTrack(myLatPoint, mBaiduMap);
+                    toLastLocation(mBaiduMap);
+                }
             }
 
             @Override
@@ -474,18 +534,34 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param mBaiduMap 地图控件
      */
-    public void toFirstLocation(BaiduMap mBaiduMap){
-        if(!pointSets.isEmpty()){
-            float currentZoom = 16;
-            MapStatus mapStatus = mBaiduMap.getMapStatus();
-            if(mapStatus != null){
-                currentZoom = mapStatus.zoom;
-            }
-            MapStatusUpdate update = MapStatusUpdateFactory.newLatLngZoom(pointSets.get(0),currentZoom);
+    public void toFirstLocation(BaiduMap mBaiduMap) {
+        if (!pointSets.isEmpty()) {
+            float currentZoom = 19.5f;
+//            MapStatus mapStatus = mBaiduMap.getMapStatus();
+//            if (mapStatus != null) {
+//                currentZoom = mapStatus.zoom;
+//            }
+            MapStatusUpdate update = MapStatusUpdateFactory.newLatLngZoom(pointSets.get(0), currentZoom);
             mBaiduMap.animateMapStatus(update);
         }
     }
 
+    /**
+     * 自动定位到最后一个点位。用于正在记录轨迹时，可实时跟踪用户位置
+     *
+     * @param mBaiduMap 地图空间
+     */
+    public void toLastLocation(BaiduMap mBaiduMap) {
+        if (!pointSets.isEmpty()) {
+            float currentZoom = 16;
+            MapStatus mapStatus = mBaiduMap.getMapStatus();
+            if (mapStatus != null) {
+                currentZoom = mapStatus.zoom;
+            }
+            MapStatusUpdate update = MapStatusUpdateFactory.newLatLngZoom(pointSets.get(pointSets.size() - 1), currentZoom);
+            mBaiduMap.animateMapStatus(update);
+        }
+    }
 //
 //        btnSend.setOnClickListener(new View.OnClickListener() {
 //            @Override
