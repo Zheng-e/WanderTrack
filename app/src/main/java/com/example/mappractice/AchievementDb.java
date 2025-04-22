@@ -1,9 +1,8 @@
 package com.example.mappractice;
 
+import net.sqlcipher.database.SQLiteDatabase;
+import net.sqlcipher.database.SQLiteOpenHelper;
 import android.content.Context;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
-
 
 public class AchievementDb extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "achievements.db";
@@ -42,6 +41,7 @@ public class AchievementDb extends SQLiteOpenHelper {
 
     public AchievementDb(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        SQLiteDatabase.loadLibs(context);
     }
 
     @Override
@@ -63,4 +63,5 @@ public class AchievementDb extends SQLiteOpenHelper {
             onCreate(db);
         }
     }
+    // 所有调用 getWritableDatabase() 或 getReadableDatabase() 时需传入统一密码，例如 "WanderTrack"
 }

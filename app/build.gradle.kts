@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.mappractice"
-        minSdk = 16
+        minSdk = 23
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -49,11 +49,10 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation(files("libs\\BaiduLBS_Android.jar"))
-    implementation(files("libs\\BaiduLBS_Android.jar"))
-    implementation(files("libs\\BaiduLBS_Android.jar"))
     implementation(files("libs\\mysql-connector-java-5.0.4-bin.jar"))
-//    implementation(files("libs\\BaiduLBS_Android.jar"))
-//    implementation(files("libs\\BaiduLBS_Android.jar"))
+    implementation("net.zetetic:android-database-sqlcipher:4.5.4@aar")
+    implementation("androidx.sqlite:sqlite:2.1.0")
+    implementation("androidx.sqlite:sqlite-framework:2.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

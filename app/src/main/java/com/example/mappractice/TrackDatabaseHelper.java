@@ -1,10 +1,10 @@
 package com.example.mappractice;
 
+import net.sqlcipher.database.SQLiteDatabase;
+import net.sqlcipher.database.SQLiteOpenHelper;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -22,6 +22,7 @@ public class TrackDatabaseHelper extends SQLiteOpenHelper {
 
     public TrackDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        SQLiteDatabase.loadLibs(context);
     }
 
     @Override
@@ -43,7 +44,7 @@ public class TrackDatabaseHelper extends SQLiteOpenHelper {
     }
     public void insertTrackMeta(String filePath, long startTime, long endTime) {
         //往 tracks 表中插入一条轨迹元数据
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getWritableDatabase("WanderTrack");
         ContentValues values = new ContentValues();
         values.put(COLUMN_FILE_PATH, filePath);
         values.put(COLUMN_START_TIME, startTime);
@@ -56,7 +57,7 @@ public class TrackDatabaseHelper extends SQLiteOpenHelper {
     public List<TrackMeta> getAllTracks() {
         //查询数据库中所有的轨迹元数据
         List<TrackMeta> trackList = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase("WanderTrack");
         Cursor cursor = db.query(TABLE_TRACKS, null, null, null, null, null, COLUMN_START_TIME + " DESC");
 
         if (cursor.moveToFirst()) {

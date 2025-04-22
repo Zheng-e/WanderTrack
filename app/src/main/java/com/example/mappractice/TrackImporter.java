@@ -7,26 +7,85 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
 public class TrackImporter {
+    private byte[] encryptGPXContent(String content, String key) throws Exception {
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        return cipher.doFinal(content.getBytes("UTF-8"));
+    }
+
+    private void encryptAndSaveTrack(List<LocationPoint> points, File outputFile) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+            StringBuilder gpxContent = new StringBuilder();
+            gpxContent.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+            gpxContent.append("<gpx version=\"1.1\" creator=\"WanderTrack\">\n");
+            gpxContent.append("  <trk><name>Imported Track</name><trkseg>\n");
+
+            for (LocationPoint point : points) {
+                gpxContent.append(String.format(Locale.US,
+                        "    <trkpt lat=\"%f\" lon=\"%f\"><time>%s</time></trkpt>\n",
+                        point.latitude, point.longitude,
+                        sdf.format(new Date(point.timestamp))));
+            }
+
+            gpxContent.append("  </trkseg></trk>\n");
+            gpxContent.append("</gpx>\n");
+
+            byte[] encryptedData = encryptGPXContent(gpxContent.toString(), "WanderTrack123456");
+            try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+                fos.write(encryptedData);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public void importGpxFromFile(String filePath) {
-        //从指定的 GPX 文件路径读取轨迹点数据，并将其保存到数据库中
-        List<LocationPoint> points = parseGpx(filePath);
-        insertImportedTrackToDatabase(points, filePath);
+        //导入GPX文件，加密后存储进数据库
+        try {
+            List<LocationPoint> points = parseGpx(filePath);
+            File encryptedFile = new File(MyApplication.getContext().getExternalFilesDir(null), new File(filePath).getName() + ".enc");
+            encryptAndSaveTrack(points, encryptedFile);
+            if (encryptedFile != null) {
+                insertImportedTrackToDatabase(points, encryptedFile.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void importKmlFromFile(String filePath) {
-        //与 importGpxFromFile() 类似，从指定的 GPX 文件路径读取轨迹点数据，并将其保存到数据库中
-        List<LocationPoint> points = parseKml(filePath);
-        insertImportedTrackToDatabase(points, filePath);
+        //导入KML文件，加密后存储进数据库
+        try {
+            List<LocationPoint> points = parseKml(filePath);
+            File encryptedFile = new File(MyApplication.getContext().getExternalFilesDir(null), new File(filePath).getName() + ".enc");
+            encryptAndSaveTrack(points, encryptedFile);
+            if (encryptedFile != null) {
+                insertImportedTrackToDatabase(points, encryptedFile.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private List<LocationPoint> parseGpx(String filePath) {
