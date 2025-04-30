@@ -23,6 +23,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
 public class TrackImporter {
+
     private byte[] encryptGPXContent(String content, String key) throws Exception {
         SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
         Cipher cipher = Cipher.getInstance("AES");
@@ -50,10 +51,17 @@ public class TrackImporter {
             gpxContent.append("  </trkseg></trk>\n");
             gpxContent.append("</gpx>\n");
 
-            byte[] encryptedData = encryptGPXContent(gpxContent.toString(), "WanderTrack123456");
-            try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-                fos.write(encryptedData);
+//            byte[] encryptedData = encryptGPXContent(gpxContent.toString(), "WanderTrack123456");
+//            try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+//                fos.write(encryptedData);
+//            }
+            // 使用工具类进行加密
+            File tempPlainFile = File.createTempFile("temp_plain", ".gpx", MyApplication.getContext().getCacheDir());
+            try (FileOutputStream fos = new FileOutputStream(tempPlainFile)) {
+                fos.write(gpxContent.toString().getBytes());
             }
+            GpxCryptoUtils.encryptGpxFile(tempPlainFile, outputFile);
+            tempPlainFile.delete(); // Clean up the temporary file
 
         } catch (Exception e) {
             e.printStackTrace();
