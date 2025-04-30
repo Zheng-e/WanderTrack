@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_load_path"
+        android:title="加载路径" />
+
+    <item
+        android:id="@+id/nav_achievements"
+        android:title="成就" />
+</menu>
