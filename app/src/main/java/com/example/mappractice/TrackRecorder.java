@@ -18,6 +18,8 @@ import androidx.core.app.ActivityCompat;
 import com.baidu.mapapi.model.LatLng;
 import com.baidu.mapapi.utils.CoordinateConverter;
 
+import org.w3c.dom.ls.LSOutput;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -48,14 +50,14 @@ public class TrackRecorder {
         //后续有需要再添加
     }
 
-    public void stopTrackingAndSaveGpx() {
+    public void stopTrackingAndSaveGpx() throws Exception {
         //停止记录轨迹，并将轨迹数据保存为GPX文件后存入数据库
         endTime = System.currentTimeMillis();
         saveToGpxFile(trackPoints);
-        saveTrackMetaToDatabase(generateFileName(), startTime, endTime);
+        saveTrackMetaToDatabase(generateFileName()+".enc", startTime, endTime);
     }
 
-    private void saveToGpxFile(List<LocationPoint> points) {
+    private void saveToGpxFile(List<LocationPoint> points) throws Exception {
         //将记录的轨迹点保存为GPX文件
         String fileName = generateFileName();
         File gpxFile = new File(MyApplication.getContext().getExternalFilesDir(null), fileName);
@@ -81,9 +83,9 @@ public class TrackRecorder {
             gpxContent.append("</gpx>\n");
 
             // 加密内容
-            byte[] encryptedData = encryptGPXContent(gpxContent.toString(), "WanderTrack123456"); // 密钥为16字节
+//            byte[] encryptedData = encryptGPXContent(gpxContent.toString(), "WanderTrack123456"); // 密钥为16字节
             try (FileOutputStream fos = new FileOutputStream(gpxFile)) {
-                fos.write(encryptedData);
+                fos.write(gpxContent.toString().getBytes());
             }
 
             Log.d("TrackRecorder", "Encrypted GPX saved to: " + gpxFile.getAbsolutePath());
@@ -91,6 +93,9 @@ public class TrackRecorder {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        File encryptedFile = new File(MyApplication.getContext().getExternalFilesDir(null), new File(gpxFile.getAbsolutePath()).getName() + ".enc");
+        GpxCryptoUtils.encryptGpxFile(gpxFile,encryptedFile);
     }
 
     private String generateFileName() {

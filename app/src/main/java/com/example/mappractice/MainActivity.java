@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Xml;
@@ -76,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private Toolbar toolbar;
     MapView mapView;
     private static final int REQUEST_LOCATION_PERMISSION = 1;
+    private static final int READ_REQUEST_CODE = 42;
     private LocationManager locationManager;
     private LocationListener locationListener;
     //    Button btnPoint;
@@ -119,6 +121,8 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(new Intent(MainActivity.this, LoadPathActivity.class));
                 } else if (id == R.id.nav_achievements) {
                     startActivity(new Intent(MainActivity.this, AchievementActivity.class));
+                } else if (id == R.id.nav_import) {
+                    performFileSearch();
                 }
 
                 drawerLayout.closeDrawer(GravityCompat.START);
@@ -202,7 +206,11 @@ public class MainActivity extends AppCompatActivity {
         btnSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                trackRecorder.stopTrackingAndSaveGpx();
+                try {
+                    trackRecorder.stopTrackingAndSaveGpx();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
                 stopRecording();
                 Toast.makeText(MainActivity.this, "保存轨迹", Toast.LENGTH_SHORT).show();
             }
@@ -343,12 +351,20 @@ public class MainActivity extends AppCompatActivity {
                 //加载轨迹
                 System.out.println("try to load " + selectedTrack);
                 String gpxDirectory = getExternalFilesDir(null).getAbsolutePath();
-                File gpxFile = new File(gpxDirectory, selectedTrack);//使用file对象智能拼接路径和处理分隔符
+                File encFile = new File(gpxDirectory, selectedTrack);//使用file对象智能拼接路径和处理分隔符
+                File directory = getExternalFilesDir("enc");
+                if (directory != null &&!directory.exists()) {
+                    if (!directory.mkdirs()) {
+                        // 创建文件夹失败
+                        System.err.println("creating folder failed");
+                    }
+                }
                 try {
-                    pointSets = gpxToList(gpxFile.getAbsolutePath());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (XmlPullParserException e) {
+                    if( directory!=null && directory.exists()) {
+                        File gpxFile = GpxCryptoUtils.decryptGpxFile(encFile, directory);
+                        pointSets = gpxToList(gpxFile.getAbsolutePath());
+                    }
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
                 resetOverlay(mBaiduMap);
@@ -404,6 +420,31 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    /**
+     * 导入文件目录视角
+     */
+    public void performFileSearch(){
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        Intent chooser = Intent.createChooser(intent, "选择文件");
+        startActivityForResult(chooser, READ_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == READ_REQUEST_CODE && resultCode == RESULT_OK) {
+            if (data != null) {
+                Uri uri = data.getData();
+//                String filePath = uri.toString();
+                Toast.makeText(this, "导入成功", Toast.LENGTH_LONG).show();
+                TrackImporter trackImporter = new TrackImporter();
+                trackImporter.importGpxFromFile(uri);
+            }
+        }
     }
 
     /**

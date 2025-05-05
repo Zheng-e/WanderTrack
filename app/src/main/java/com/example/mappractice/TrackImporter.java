@@ -1,5 +1,7 @@
 package com.example.mappractice;
 
+import android.content.ContentResolver;
+import android.net.Uri;
 import android.util.Xml;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -68,14 +70,28 @@ public class TrackImporter {
         }
     }
 
-    public void importGpxFromFile(String filePath) {
-        //导入GPX文件，加密后存储进数据库
+    public void importGpxFromFile(Uri uri) {
+//        //导入GPX文件，加密后存储进数据库
+//        try {
+//            List<LocationPoint> points = parseGpx(filePath);
+//            File encryptedFile = new File(MyApplication.getContext().getExternalFilesDir(null), new File(filePath).getName() + ".enc");
+//            encryptAndSaveTrack(points, encryptedFile);
+//            if (encryptedFile != null) {
+//                insertImportedTrackToDatabase(points, encryptedFile.getAbsolutePath());
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         try {
-            List<LocationPoint> points = parseGpx(filePath);
-            File encryptedFile = new File(MyApplication.getContext().getExternalFilesDir(null), new File(filePath).getName() + ".enc");
-            encryptAndSaveTrack(points, encryptedFile);
-            if (encryptedFile != null) {
-                insertImportedTrackToDatabase(points, encryptedFile.getAbsolutePath());
+            // 将Uri对应的文件内容复制到一个临时文件中
+            File tempFile = createTempFileFromUri(uri);
+            if (tempFile != null) {
+                List<LocationPoint> points = parseGpx(tempFile.getAbsolutePath());
+                File encryptedFile = new File(MyApplication.getContext().getExternalFilesDir(null), tempFile.getName() + ".enc");
+                encryptAndSaveTrack(points, encryptedFile);
+                if (encryptedFile != null) {
+                    insertImportedTrackToDatabase(points, encryptedFile.getAbsolutePath());
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -94,6 +110,31 @@ public class TrackImporter {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 根据文件uri临时创建一个文件用于后续操作
+     *
+     * @param uri 文件的uri
+     * @return 临时路径文件
+     * @throws IOException IO写文件
+     */
+    private File createTempFileFromUri(Uri uri) throws IOException {
+        ContentResolver contentResolver = MyApplication.getContext().getContentResolver();
+        InputStream inputStream = contentResolver.openInputStream(uri);
+        if (inputStream != null) {
+            File tempFile = File.createTempFile("gpx_import", ".gpx", MyApplication.getContext().getExternalFilesDir(null));
+            FileOutputStream outputStream = new FileOutputStream(tempFile);
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            inputStream.close();
+            outputStream.close();
+            return tempFile;
+        }
+        return null;
     }
 
     private List<LocationPoint> parseGpx(String filePath) {
@@ -175,9 +216,25 @@ public class TrackImporter {
         long startTime = points.get(0).timestamp;
         long endTime = points.get(points.size() - 1).timestamp;
 
-        String filePath = fileName; // optional full path or just the name
+        String filePath = processFilePath(fileName); // optional full path or just the name
         TrackDatabaseHelper dbHelper = new TrackDatabaseHelper(MyApplication.getContext());
         dbHelper.insertTrackMeta(filePath, startTime, endTime);
+    }
+
+    /**
+     * 处理文件路径可能是绝对路径的情况
+     *
+     * @param filePath 文件路径
+     * @return 返回仅文件名和后缀
+     */
+    private String processFilePath(String filePath) {
+        if (filePath.startsWith("/")) {
+            int lastIndex = filePath.lastIndexOf("/");
+            if (lastIndex != -1) {
+                return filePath.substring(lastIndex + 1);
+            }
+        }
+        return filePath;
     }
 
 }
