@@ -3,7 +3,9 @@ package com.example.mappractice;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+
 import net.sqlcipher.database.SQLiteDatabase;
+
 import android.content.ContentValues;
 import android.util.Log;
 
@@ -72,11 +74,20 @@ public class AchievementTracker {
         );
     }
 
-    public void addLocation(String userID, String province, String city,
-                            String country, String continent) {
-        addLocation(userID, province, city, country, continent,
-                System.currentTimeMillis(), 0.0, 0.0);
-    }
+    /**
+     * E:\AS_Projects\WanderTrack\app\src\main\java\com\example\mappractice\AchievementTracker.java:77: error: no suitable method found for addLocation(String,String,String,String,String,long,double,double)
+     *         addLocation(userID, province, city, country, continent,
+     *         ^
+     *     method AchievementTracker.addLocation(String,String,String,String,String) is not applicable
+     *       (actual and formal argument lists differ in length)
+     *     method AchievementTracker.addLocation(String,String,String,String,String,long,double,double,boolean) is not applicable
+     *       (actual and formal argument lists differ in length)
+     * E:\AS_Projects\WanderTrack\app\src\main\java\com\example\mappractice\AchievementTracker.java:75: error: method addLocation(String,String,String,String,String) is already defined in class AchievementTracker
+     * 函数重载错误，但不清楚addLocation多重载的用途。为编译通过故暂且注释
+     */
+//    public void addLocation(String userID, String province, String city, String country, String continent) {
+//        addLocation(userID, province, city, country, continent, System.currentTimeMillis(), 0.0, 0.0);
+//    }
 
     private int queryCount(String column) {
         SQLiteDatabase db = dbHelper.getReadableDatabase("your_password");

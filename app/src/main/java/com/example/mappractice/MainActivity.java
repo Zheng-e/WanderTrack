@@ -196,8 +196,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 trackRecorder.pauseTracking();
                 //模拟加入了一个点
-                LatLng testPoint = new LatLng(31.2500, 121.4920);
-                updateTrack(testPoint, mBaiduMap);
+//                LatLng testPoint = new LatLng(31.2500, 121.4920);
+//                updateTrack(testPoint, mBaiduMap);
                 Toast.makeText(MainActivity.this, "停止记录轨迹", Toast.LENGTH_SHORT).show();
             }
         });
@@ -339,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
                 String info = "longitude:" + marker.getExtraInfo().getString("longitude")
                         + "\nlatitude:" + marker.getExtraInfo().getString("latitude")
                         + "\n可添加备注并保存到DB";
-                showInputDialog(info, marker.getExtraInfo().getString("longitude"), marker.getExtraInfo().getString("latitude"));
+//                showInputDialog(info, marker.getExtraInfo().getString("longitude"), marker.getExtraInfo().getString("latitude"));
                 return false;
             }
         });
@@ -353,14 +353,14 @@ public class MainActivity extends AppCompatActivity {
                 String gpxDirectory = getExternalFilesDir(null).getAbsolutePath();
                 File encFile = new File(gpxDirectory, selectedTrack);//使用file对象智能拼接路径和处理分隔符
                 File directory = getExternalFilesDir("enc");
-                if (directory != null &&!directory.exists()) {
+                if (directory != null && !directory.exists()) {
                     if (!directory.mkdirs()) {
                         // 创建文件夹失败
                         System.err.println("creating folder failed");
                     }
                 }
                 try {
-                    if( directory!=null && directory.exists()) {
+                    if (directory != null && directory.exists()) {
                         File gpxFile = GpxCryptoUtils.decryptGpxFile(encFile, directory);
                         pointSets = gpxToList(gpxFile.getAbsolutePath());
                     }
@@ -410,7 +410,7 @@ public class MainActivity extends AppCompatActivity {
 //                    resetOverlay(mBaiduMap);
 //                }
                 float dynamicWidth = zoomLevel * 1.5f;
-                if(visibleLine != null){
+                if (visibleLine != null) {
                     visibleLine.setWidth((int) dynamicWidth);
                 }
             }
@@ -425,7 +425,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 导入文件目录视角
      */
-    public void performFileSearch(){
+    public void performFileSearch() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("*/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -470,13 +470,19 @@ public class MainActivity extends AppCompatActivity {
         if (visibleLine != null) {
             visibleLine.remove();
         }
+        if(pointSets.size() == 1){
+            setMyMarker("0",pointSets.get(0).latitude,pointSets.get(0).longitude,mBaiduMap);
+        }
         if (pointSets.size() >= 2) {
             visibleTrack = new PolylineOptions()
                     .points(pointSets) // 添加坐标点
                     .color(Color.RED) // 设置颜色
                     .width(10) // 线宽
                     .dottedLine(true); // 是否虚线（可选）
+            MapStatus mapStatus = mBaiduMap.getMapStatus();
             visibleLine = (Polyline) mBaiduMap.addOverlay(visibleTrack);
+            float currentZoom = mapStatus.zoom * 1.5f;
+            visibleLine.setWidth((int) currentZoom);
         }
     }
 
