@@ -12,9 +12,6 @@ import java.util.List;
 public class TrackAdapter extends ArrayAdapter<TrackMeta> {
     //这个类是对轨迹列表的适配器
     //它负责将轨迹元数据转换为可显示的列表项
-    //例如，显示轨迹的起点、终点、总距离等信息
-    //它可以使用 RecyclerView 或 ListView 来显示轨迹列表
-    //并提供点击事件处理和数据更新功能
 
     public TrackAdapter(Context context, List<TrackMeta> tracks) {
         super(context, 0, tracks);

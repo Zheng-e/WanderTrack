@@ -225,4 +225,14 @@ public class AchievementTracker {
         return this.dbHelper;
     }
 
+    public boolean isTitleUnlocked(String s) {
+        SQLiteDatabase db = dbHelper.getReadableDatabase("your_password");
+        String query = "SELECT 1 FROM " + AchievementDb.TitleEntry.TABLE_NAME +
+                " WHERE " + AchievementDb.TitleEntry.COLUMN_USER_ID + " = ?" +
+                " AND " + AchievementDb.TitleEntry.COLUMN_TITLE_ID + " = ?";
+
+        try (Cursor cursor = db.rawQuery(query, new String[]{DEFAULT_USER_ID, s})) {
+            return cursor.getCount() > 0;
+        }
+    }
 }

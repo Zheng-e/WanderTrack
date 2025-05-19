@@ -4,6 +4,8 @@ import android.content.ContentResolver;
 import android.net.Uri;
 import android.util.Xml;
 
+import com.baidu.mapapi.model.LatLng;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -237,4 +239,7 @@ public class TrackImporter {
         return filePath;
     }
 
+    public List<LatLng> gpxToList(String absolutePath) {
+        return java.util.Collections.emptyList();
+    }
 }

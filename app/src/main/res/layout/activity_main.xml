@@ -54,13 +54,6 @@
                 android:text="开始" />
 
             <Button
-                android:id="@+id/button_stop"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="暂停" />
-
-            <Button
                 android:id="@+id/button_save"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
